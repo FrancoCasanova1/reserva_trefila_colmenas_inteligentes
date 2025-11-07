@@ -1,0 +1,66 @@
+/* Configuración de color temático */
+:root {
+    --color-primary: #FFC300; /* Amarillo Miel */
+    --color-secondary: #3C2F2F; /* Marrón Oscuro/Negro Abeja */
+}
+.bg-primary { background-color: var(--color-primary); }
+.text-primary { color: var(--color-primary); }
+.bg-secondary { background-color: var(--color-secondary); }
+.text-secondary { color: var(--color-secondary); }
+.border-primary { border-color: var(--color-primary); }
+
+/* Estilos generales y fuente */
+body { font-family: 'Inter', sans-serif; background-color: #F7F5F0; }
+
+/* Animación de carga */
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--color-primary);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Dibujo de la Colmena (SVG simple) */
+.hive-svg-container {
+    width: 150px;
+    height: 150px;
+    position: relative;
+    margin: 0 auto;
+}
+/* Forma de hexágono estilizado */
+.hive-shape {
+    background-color: #DDAA55;
+    border: 4px solid var(--color-secondary);
+    border-radius: 10px;
+    box-shadow: 0 8px 0 -2px var(--color-secondary), 0 8px 0 -1px #996633;
+    width: 100%;
+    height: 100%;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+}
+
+/* Contenedor responsivo para Twitch */
+.twitch-container {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 Aspect Ratio */
+    margin-top: 1rem;
+}
+.twitch-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0.75rem; /* rounded-xl */
+}
