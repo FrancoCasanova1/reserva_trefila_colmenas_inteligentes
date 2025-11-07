@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apiario Digital - Colmenas Inteligentes</title>
-    
-    <!-- Carga de Tailwind CSS -->
+    <!-- Carga de Tailwind CSS (Desarrollo) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carga de Lucide Icons (Iconos modernos) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Carga del Cliente de Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Carga de Chart.js para visualización de datos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     
-    <!-- Carga de Librerías Externas -->
-    <script src="https://unpkg.com/lucide@latest"></script> <!-- Iconos -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script> <!-- Gráficos -->
-
-    <!-- Carga de nuestros archivos CSS y JS -->
+    <!-- Enlace a los estilos locales -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="min-h-screen">
@@ -24,6 +24,7 @@
         <!-- Header y Navegación -->
         <header class="flex justify-between items-center py-4 mb-6 border-b-4 border-primary">
             <h1 class="text-3xl font-extrabold text-secondary flex items-center cursor-pointer" onclick="navigate('dashboard')">
+                <!-- Ícono de Hexágono (Panal) en lugar de sol o abeja -->
                 <i data-lucide="hexagon" class="w-8 h-8 mr-2 text-primary"></i>
                 Apiario Digital
             </h1>
@@ -51,9 +52,13 @@
         </div>
     </div>
 
-    <!-- Modal de Login -->
-    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center">
-        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full">
+    <!-- Modal de Login (Ahora se puede cerrar) -->
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center" onclick="closeLoginModal()">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full relative" onclick="event.stopPropagation()">
+            <!-- Botón de Cierre -->
+            <button onclick="closeLoginModal()" class="absolute top-3 right-3 text-gray-400 hover:text-secondary transition p-1">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
             <h3 class="text-2xl font-bold mb-4 text-secondary">Acceso de Administrador</h3>
             <input type="email" id="admin-email" placeholder="Email Admin" class="w-full border border-gray-300 p-3 rounded-lg mb-3 focus:ring-primary focus:border-primary">
             <input type="password" id="admin-password" placeholder="Contraseña" class="w-full border border-gray-300 p-3 rounded-lg mb-4 focus:ring-primary focus:border-primary">
@@ -62,7 +67,11 @@
         </div>
     </div>
 
-    <!-- Carga de nuestro script al final del body -->
+    <!-- Enlace al script local -->
     <script src="script.js"></script>
+    <script>
+        // Inicialización de Lucide Icons al cargar el DOM
+        document.addEventListener('DOMContentLoaded', initializeIcons);
+    </script>
 </body>
 </html>
