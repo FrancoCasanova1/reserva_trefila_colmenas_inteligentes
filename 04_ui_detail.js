@@ -27,7 +27,9 @@ function renderCharts(data, titleSuffix = "Últimos 50 puntos") {
     const metrics = [
         { id: 'tempChart', label: 'Temperatura (°C)', dataKey: 'temperature_c', color: 'rgb(239, 68, 68)' }, // Red-500
         { id: 'weightChart', label: 'Peso (kg)', dataKey: 'weight_kg', color: 'rgb(34, 197, 94)' }, // Green-500
-        { id: 'humidityChart', label: 'Humedad (%)', dataKey: 'humidity_pct', color: 'rgb(59, 130, 246)' } // Blue-500
+        { id: 'humidityChart', label: 'Humedad (%)', dataKey: 'humidity_pct', color: 'rgb(59, 130, 246)' }, // Blue-500
+        // --- (¡CORREGIDO!) GRÁFICO DE AUDIO AHORA AMARILLO ---
+        { id: 'audioChart', label: 'Actividad de Audio (ADC)', dataKey: 'audio_freq_avg', color: 'rgb(234, 179, 8)' } // Yellow-500
     ];
 
     // Destruir gráficos anteriores
@@ -166,9 +168,9 @@ function generateHiveDiagnosis(hive, data, history) {
             color: 'red'
         });
         if (status === 'good') status = 'warning';
-    } else if (data && data.audio_freq_avg < 1000 && data.audio_freq_avg > 1) { // Ignorar 0.0
+    } else if (data && data.audio_freq_avg < 100 && data.audio_freq_avg > 1) { // Ignorar 0.0
         messages.push({
-            text: `Frecuencia de Audio BAJA. La colmena está inactiva o con problemas serios de población.`,
+            text: `Frecuencia de Audio BAJA (Valor ADC: ${data.audio_freq_avg.toFixed(0)}). La colmena está inactiva o con problemas serios de población.`,
             icon: 'volume-x',
             color: 'orange'
         });
@@ -227,7 +229,7 @@ async function handleHistoryFilter(hiveId) {
 
     // 4. Renderizar los gráficos
     if (chartsContainer) {
-        // Restaurar la estructura HTML del canvas
+        // --- (¡NUEVO!) Restaurar la estructura HTML del canvas (AHORA CON 4 GRÁFICOS) ---
         chartsContainer.innerHTML = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white p-4 rounded-xl shadow-lg h-80">
@@ -236,8 +238,11 @@ async function handleHistoryFilter(hiveId) {
                 <div class="bg-white p-4 rounded-xl shadow-lg h-80">
                     <canvas id="weightChart"></canvas>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow-lg h-80 md:col-span-2">
+                <div class="bg-white p-4 rounded-xl shadow-lg h-80">
                     <canvas id="humidityChart"></canvas>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-lg h-80">
+                    <canvas id="audioChart"></canvas>
                 </div>
             </div>`;
     }
@@ -316,7 +321,7 @@ async function renderHiveDetail(hiveIdStr) {
         </div>
 
         <p class="text-right text-sm text-gray-500 mt-4">Última actualización: ${data ? new Date(data.created_at).toLocaleString('es-ES') : 'N/A'}</p>
-    ` : '<div class="bg-gray-100 p-6 rounded-xl text-center text-gray-500 font-medium">No se han recibido datos de sensor para esta colmena aún.</div>';
+    ` : `<div class="bg-gray-100 p-6 rounded-xl text-center text-gray-500 font-medium">No se han recibido datos de sensor para esta colmena aún.</div>`;
 
     // 4. Renderizar Stream de Twitch
     // CONSTRUCCIÓN DE URL CORREGIDA
@@ -376,7 +381,7 @@ async function renderHiveDetail(hiveIdStr) {
                 </div>
             </div>
 
-            <!-- CONTENEDOR DE GRÁFICOS -->
+            <!-- CONTENEDOR DE GRÁFICOS (¡NUEVO! CUADRÍCULA 2x2) -->
             <div id="charts-container">
                 ${initialHistoricalData.length > 0 ? `
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -386,8 +391,11 @@ async function renderHiveDetail(hiveIdStr) {
                         <div class="bg-white p-4 rounded-xl shadow-lg h-80">
                             <canvas id="weightChart"></canvas>
                         </div>
-                        <div class="bg-white p-4 rounded-xl shadow-lg h-80 md:col-span-2">
+                        <div class="bg-white p-4 rounded-xl shadow-lg h-80">
                             <canvas id="humidityChart"></canvas>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-lg h-80">
+                            <canvas id="audioChart"></canvas>
                         </div>
                     </div>` : 
                     (data ? '<div class="mt-8 p-4 bg-yellow-100 rounded-xl text-yellow-800">Aún no hay suficiente historial de datos para mostrar gráficos. Esperando más reportes del ESP32.</div>' : '')
