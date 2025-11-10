@@ -56,14 +56,16 @@ function handleRoute() {
 
     if (routes[path]) {
         const renderFunction = routes[path];
-        // Los render functions son responsables de actualizar #content
+        // Los render functions (en ui_views.js y ui_detail.js)
+        // son responsables de actualizar #content y llamar a initializeIcons()
         renderFunction(id); 
     } else {
         // Ruta no encontrada
         content.innerHTML += '<div class="text-center p-12 text-red-500">Ruta no encontrada (404)</div>';
     }
     
-    // Volver a inicializar los iconos de Lucide (movido al final de cada render)
+    // (¡CORRECCIÓN!) Actualizar el botón de admin CADA VEZ que cambiamos de ruta
+    updateAdminButton();
 }
 
 // Escucha cambios en el hash (navegación por el usuario)
@@ -74,46 +76,64 @@ window.addEventListener('hashchange', handleRoute);
 // AUTENTICACIÓN (ADMIN) - ¡USANDO SUPABASE AUTH!
 // =================================================================
 
-// Observa cambios en el estado de autenticación
-supabaseClient.auth.onAuthStateChange((event, session) => {
-    isAuthenticated = !!session; // True si hay una sesión activa
-    currentUserId = session ? session.user.id : null;
+/**
+ * (¡NUEVA FUNCIÓN DE CORRECCIÓN!)
+ * Actualiza el texto y la función del botón de Admin
+ * basado en el estado de autenticación Y la ruta actual.
+ */
+function updateAdminButton() {
     const toggleButton = document.getElementById('admin-toggle');
+    if (!toggleButton) return; // Safety check
+
     const currentHash = window.location.hash;
 
-    if (toggleButton) {
-        if (isAuthenticated) {
+    if (isAuthenticated) {
+        if (currentHash.includes('#admin') || currentHash.includes('#edit')) {
+            // Logueado Y en página de admin
             toggleButton.textContent = 'Cerrar Sesión';
-            // Si el usuario se acaba de loguear y no está en admin, lo redirigimos
-            if (!currentHash.includes('#admin') && !currentHash.includes('#edit')) {
-                navigate('admin');
-            }
+            toggleButton.onclick = handleLogout;
         } else {
-            toggleButton.textContent = 'Acceso Admin';
-            // Si el usuario estaba en admin y cerró sesión, lo enviamos al dashboard
-            if (currentHash.includes('#admin') || currentHash.includes('#edit')) {
-                 navigate('dashboard');
-            }
+            // Logueado PERO en página pública (Dashboard, Detalle)
+            toggleButton.textContent = 'Panel de Admin';
+            toggleButton.onclick = () => navigate('admin');
         }
-    }
-});
-
-// Adjuntar el listener al botón de Admin
-const adminToggleBtn = document.getElementById('admin-toggle');
-if (adminToggleBtn) {
-    adminToggleBtn.addEventListener('click', () => {
-        if (isAuthenticated) {
-            handleLogout();
-        } else {
+    } else {
+        // No logueado
+        toggleButton.textContent = 'Acceso Admin';
+        toggleButton.onclick = () => {
             document.getElementById('login-modal').classList.remove('hidden');
             document.getElementById('admin-email').value = '';
             document.getElementById('admin-password').value = '';
             document.getElementById('login-error').classList.add('hidden');
-            // Asegurarse de que el icono 'X' del modal se renderice
-            initializeIcons(); 
-        }
-    });
+            initializeIcons(); // Asegurarse de que el icono 'X' del modal se renderice
+        };
+    }
 }
+
+// Observa cambios en el estado de autenticación
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    isAuthenticated = !!session; // True si hay una sesión activa
+    currentUserId = session ? session.user.id : null;
+    const currentHash = window.location.hash;
+
+    // (¡CORRECCIÓN!) Llamar a la nueva función
+    // para actualizar el botón
+    updateAdminButton(); 
+
+    // Lógica de redirección (se mantiene)
+    if (isAuthenticated) {
+        // Si acabas de iniciar sesión (evento 'SIGNED_IN') y no estás en admin, redirige.
+        if (event === 'SIGNED_IN' && !currentHash.includes('#admin') && !currentHash.includes('#edit')) {
+            navigate('admin');
+        }
+    } else {
+        // Si cierras sesión mientras estás en admin, te envía al dashboard
+        if (currentHash.includes('#admin') || currentHash.includes('#edit')) {
+             navigate('dashboard');
+        }
+    }
+});
+
 
 async function handleLogin() {
     const email = document.getElementById('admin-email').value;
@@ -481,8 +501,12 @@ async function handleTareCommand(hiveId) {
 document.addEventListener('DOMContentLoaded', () => {
     // Inicializar iconos una vez al cargar el DOM.
     // Los iconos inyectados dinámicamente se inicializarán al final de cada
-    // función de renderizado (renderPublicDashboard, renderHiveDetail, etc.)
+    // función de renderizado.
     initializeIcons(); 
+    
+    // (¡CORRECCIÓN!) Configurar el estado inicial del botón de admin
+    // antes de que se carguen los datos.
+    updateAdminButton();
     
     fetchData(); // Iniciar la carga de datos y el flujo de la aplicación
 });
