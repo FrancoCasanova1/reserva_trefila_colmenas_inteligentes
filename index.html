@@ -4,19 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apiario Digital - Colmenas Inteligentes</title>
-    <!-- Carga de Tailwind CSS (Desarrollo) -->
+    
+    <!-- Carga de Tailwind CSS (Play CDN) -->
+    <!-- NOTA: Esta SÍ es la forma correcta para producción con el CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- Carga de Lucide Icons (Iconos modernos) -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    
     <!-- Carga del Cliente de Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <!-- Carga de Chart.js para visualización de datos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    
-    <!-- Enlace a los estilos locales -->
+
+    <!-- Carga de Estilos Locales -->
     <link rel="stylesheet" href="style.css">
+
+    <script>
+        // Configuración de Tailwind para que reconozca los colores
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FFC300', // Amarillo Miel
+                        secondary: '#3C2F2F', // Marrón Oscuro
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="min-h-screen">
+<body class="bg-gray-100 min-h-screen">
 
     <!-- Contenedor Principal de la Aplicación -->
     <div id="app" class="max-w-7xl mx-auto p-4 md:p-8">
@@ -24,7 +43,7 @@
         <!-- Header y Navegación -->
         <header class="flex justify-between items-center py-4 mb-6 border-b-4 border-primary">
             <h1 class="text-3xl font-extrabold text-secondary flex items-center cursor-pointer" onclick="navigate('dashboard')">
-                <!-- Ícono de Hexágono (Panal) en lugar de sol o abeja -->
+                <!-- Icono de Hexágono (Corregido) -->
                 <i data-lucide="hexagon" class="w-8 h-8 mr-2 text-primary"></i>
                 Apiario Digital
             </h1>
@@ -44,7 +63,7 @@
     </div>
 
     <!-- Modal para Mensajes/Alertas -->
-    <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center">
+    <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
         <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full">
             <h3 id="modal-title" class="text-xl font-bold mb-3 text-secondary">Título</h3>
             <p id="modal-message" class="text-gray-700 mb-4"></p>
@@ -52,13 +71,15 @@
         </div>
     </div>
 
-    <!-- Modal de Login (Ahora se puede cerrar) -->
-    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center" onclick="closeLoginModal()">
-        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full relative" onclick="event.stopPropagation()">
-            <!-- Botón de Cierre -->
-            <button onclick="closeLoginModal()" class="absolute top-3 right-3 text-gray-400 hover:text-secondary transition p-1">
+    <!-- Modal de Login (CORREGIDO CON BOTÓN DE CERRAR) -->
+    <div id="login-modal" onclick="closeLoginModal()" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
+        <div onclick="event.stopPropagation()" class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full relative">
+            
+            <!-- Botón de Cerrar (X) -->
+            <button onclick="closeLoginModal()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
                 <i data-lucide="x" class="w-6 h-6"></i>
             </button>
+
             <h3 class="text-2xl font-bold mb-4 text-secondary">Acceso de Administrador</h3>
             <input type="email" id="admin-email" placeholder="Email Admin" class="w-full border border-gray-300 p-3 rounded-lg mb-3 focus:ring-primary focus:border-primary">
             <input type="password" id="admin-password" placeholder="Contraseña" class="w-full border border-gray-300 p-3 rounded-lg mb-4 focus:ring-primary focus:border-primary">
@@ -67,11 +88,11 @@
         </div>
     </div>
 
-    <!-- Enlace al script local -->
-    <script src="script.js"></script>
-    <script>
-        // Inicialización de Lucide Icons al cargar el DOM
-        document.addEventListener('DOMContentLoaded', initializeIcons);
-    </script>
+    <!-- Carga de Scripts Locales -->
+    <script src="01_config.js"></script>
+    <script src="02_ui_core.js"></script>
+    <script src="03_ui_views.js"></script>
+    <script src="04_ui_detail.js"></script>
+    <script src="05_main.js"></script>
 </body>
 </html>
