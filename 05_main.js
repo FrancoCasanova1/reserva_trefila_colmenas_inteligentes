@@ -476,6 +476,14 @@ function setupEditFormListener(hive, isNew) {
 async function handleTareCommand(hiveId) {
     if (!isAuthenticated) return showModal("Error de Acceso", "Debes estar autenticado para realizar esta acción.");
 
+    // (¡CORRECCIÓN!) Poner el estado local en 'pendiente' INMEDIATAMENTE
+    const hive = hivesMeta.find(h => h.hive_id === hiveId);
+    if (hive) {
+        hive.tare_command = 'TARE_REQUESTED';
+    }
+    handleRoute(); // Recargar la vista actual (admin) para mostrar "Tara Pendiente"
+
+    // Enviar el comando a Supabase
     const { error } = await supabaseClient
         .from('hives_meta')
         .update({ tare_command: 'TARE_REQUESTED' })
@@ -484,14 +492,73 @@ async function handleTareCommand(hiveId) {
     if (error) {
         console.error("Error al enviar comando de Tara:", error.message);
         showModal("Error de Supabase", `No se pudo enviar la orden de Tara: ${error.message}`);
+        // Revertir el estado local si falla
+        if (hive) hive.tare_command = null;
+        handleRoute();
     } else {
-        showModal("Orden Enviada", `La orden de Tara para la colmena ID ${hiveId} ha sido enviada. El ESP32 la ejecutará en el próximo ciclo.`);
-        // Actualizar la UI localmente para mostrar "Tara Pendiente"
-        const hive = hivesMeta.find(h => h.hive_id === hiveId);
-        if (hive) hive.tare_command = 'TARE_REQUESTED';
-        handleRoute(); // Recargar la vista actual (admin)
+        // Ya no mostramos el modal aquí, el estado "pendiente" es suficiente
+        console.log(`Orden de Tara enviada para colmena ID ${hiveId}.`);
     }
 }
+
+
+// =================================================================
+// (¡NUEVO!) SUPABASE REALTIME
+// =================================================================
+
+/**
+ * Configura las suscripciones de Supabase Realtime.
+ * Esto escucha cambios en la DB (Tara completada, nuevos datos de sensor)
+ * y actualiza la UI sin necesidad de refrescar la página.
+ */
+function subscribeToChanges() {
+    console.log("Subscribiéndose a cambios en tiempo real...");
+
+    const channel = supabaseClient.channel('public-changes');
+
+    channel.on(
+        'postgres_changes',
+        { 
+            event: '*', // Escuchar INSERT, UPDATE, DELETE
+            schema: 'public' 
+            // No especificamos tabla para escuchar ambas
+        },
+        (payload) => {
+            console.log('Cambio detectado en la DB:', payload);
+
+            if (payload.table === 'hives_meta' && payload.eventType === 'UPDATE') {
+                // La Tara fue completada por el ESP32 (cambió 'tare_command' a null)
+                const updatedHive = payload.new;
+                const index = hivesMeta.findIndex(h => h.hive_id === updatedHive.hive_id);
+                
+                if (index !== -1) {
+                    // Actualizar la data local
+                    hivesMeta[index] = updatedHive;
+                    
+                    // Solo recargar si estamos en el admin panel
+                    if (window.location.hash.includes('#admin')) {
+                         handleRoute(); // Re-renderizar la vista actual (esto quitará el "Tara Pendiente")
+                    }
+                }
+            }
+
+            if (payload.table === 'sensor_data' && payload.eventType === 'INSERT') {
+                // Un ESP32 envió nuevos datos de sensor
+                const newSensorData = payload.new;
+                
+                // Actualizar la data local
+                latestSensorData[newSensorData.hive_id] = newSensorData;
+
+                // Solo recargar si estamos en el dashboard o admin
+                const currentHash = window.location.hash;
+                if (currentHash.includes('#dashboard') || currentHash.includes('#admin')) {
+                    handleRoute(); // Re-renderizar la vista actual (actualizará los valores)
+                }
+            }
+        }
+    ).subscribe();
+}
+
 
 // =================================================================
 // INICIO DE LA APLICACIÓN
@@ -509,4 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAdminButton();
     
     fetchData(); // Iniciar la carga de datos y el flujo de la aplicación
+
+    // (¡NUEVO!) Iniciar el listener de Realtime
+    subscribeToChanges(); 
 });
