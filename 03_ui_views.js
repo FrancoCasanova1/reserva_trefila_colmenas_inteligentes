@@ -8,6 +8,28 @@ function renderPublicDashboard() {
     // 1. Renderizar Alertas (siempre primero)
     content.innerHTML += renderAlertsList();
 
+    // (¡NUEVO!) SVG de la colmena Langstroth (cajas apiladas)
+    // Este SVG es más moderno y profesional
+    const beehiveSvg = `
+        <svg viewBox="0 0 100 120" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="#3C2F2F" stroke-width="2">
+                <!-- Techo (Tapa) -->
+                <rect x="5" y="5" width="90" height="15" fill="#3C2F2F" rx="3"/>
+                <!-- Alza de Miel (Super) -->
+                <rect x="10" y="22" width="80" height="30" fill="#FFC300" rx="2"/>
+                <!-- Cámara de Cría (Brood Box) -->
+                <rect x="10" y="55" width="80" height="40" fill="#FFC300" rx="2"/>
+                <!-- Piquera (Entrada) -->
+                <rect x="35" y="85" width="30" height="5" fill="#3C2F2F" rx="1"/>
+                <!-- Base (Piso) -->
+                <rect x="8" y="98" width="84" height="10" fill="#3C2F2F" rx="2"/>
+                <!-- Patas (Stand) -->
+                <rect x="15" y="108" width="10" height="7" fill="#3C2F2F"/>
+                <rect x="75" y="108" width="10" height="7" fill="#3C2F2F"/>
+            </g>
+        </svg>
+    `;
+
     // 2. Renderizar Tarjetas de Colmenas
     const hiveCards = hivesMeta.map(hive => {
         const data = latestSensorData[hive.hive_id];
@@ -29,22 +51,23 @@ function renderPublicDashboard() {
         }
 
         // Renderiza los iconos de valores sensados
+        // (¡NUEVO!) Gap reducido en móvil
         const sensorIcons = data ? `
-            <div class="flex flex-wrap justify-center gap-3">
+            <div class="flex flex-wrap justify-center gap-2 sm:gap-3">
                 <div class="text-center">
-                    <i data-lucide="thermometer" class="w-6 h-6 text-red-600 mx-auto"></i>
+                    <i data-lucide="thermometer" class="w-5 sm:w-6 h-5 sm:h-6 text-red-600 mx-auto"></i>
                     <span class="text-xs font-bold">${data.temperature_c.toFixed(1)}°C</span>
                 </div>
                 <div class="text-center">
-                    <i data-lucide="droplet" class="w-6 h-6 text-blue-600 mx-auto"></i>
+                    <i data-lucide="droplet" class="w-5 sm:w-6 h-5 sm:h-6 text-blue-600 mx-auto"></i>
                     <span class="text-xs font-bold">${data.humidity_pct.toFixed(1)}%</span>
                 </div>
                 <div class="text-center">
-                    <i data-lucide="scale" class="w-6 h-6 text-green-600 mx-auto"></i>
+                    <i data-lucide="scale" class="w-5 sm:w-6 h-5 sm:h-6 text-green-600 mx-auto"></i>
                     <span class="text-xs font-bold">${data.weight_kg.toFixed(1)} kg</span>
                 </div>
                 <div class="text-center">
-                    <i data-lucide="volume-2" class="w-6 h-6 text-gray-600 mx-auto"></i>
+                    <i data-lucide="volume-2" class="w-5 sm:w-6 h-5 sm:h-6 text-yellow-500 mx-auto"></i>
                     <span class="text-xs font-bold">${data.audio_freq_avg.toFixed(0)} ADC</span>
                 </div>
             </div>
@@ -52,14 +75,16 @@ function renderPublicDashboard() {
 
 
         return `
-            <div onclick="navigate('detail', ${hive.hive_id})" class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition cursor-pointer border-t-8 border-primary">
-                <div class="hive-svg-container my-4">
-                    <div class="hive-shape">
-                        <!-- Icono de Hexágono (Corregido) -->
-                        <i data-lucide="hexagon" class="w-8 h-8 text-secondary"></i>
-                    </div>
+            <!-- (¡NUEVO!) Padding reducido en móvil -->
+            <div onclick="navigate('detail', ${hive.hive_id})" class="bg-white p-4 sm:p-6 rounded-xl shadow-lg hover:shadow-xl transition cursor-pointer border-t-8 border-primary">
+                
+                <!-- (¡NUEVO!) SVG más pequeño en móvil -->
+                <div class="w-[100px] h-[120px] sm:w-[120px] sm:h-[140px] mx-auto my-4">
+                    ${beehiveSvg}
                 </div>
-                <h3 class="text-xl font-bold text-center text-secondary mb-2">${hive.name} (ID: ${hive.hive_id})</h3>
+
+                <!-- (¡NUEVO!) Fuente de título más pequeña en móvil -->
+                <h3 class="text-lg sm:text-xl font-bold text-center text-secondary mb-2">${hive.name} (ID: ${hive.hive_id})</h3>
                 <p class="text-sm text-center text-gray-600 mb-4">${hive.location}</p>
 
                 <!-- Indicador de estado -->
@@ -75,8 +100,9 @@ function renderPublicDashboard() {
     }).join('');
 
     // 3. Añadir el contenedor de tarjetas al contenido
+    // (¡NUEVO!) Título más pequeño en móvil
     content.innerHTML += `
-        <h2 class="text-2xl font-bold text-secondary mb-4 mt-6">
+        <h2 class="text-xl sm:text-2xl font-bold text-secondary mb-4 mt-6">
             <i data-lucide="grid-3x3" class="w-6 h-6 mr-2 text-primary"></i>
             Vista General del Apiario
         </h2>
@@ -124,27 +150,28 @@ function renderAdminPanel() {
                 <i data-lucide="rotate-ccw" class="w-5 h-5 inline"></i>
             </button>`;
 
+        // (¡NUEVO!) Clases de padding y texto responsivas para la tabla
         return `
             <tr class="border-b hover:bg-yellow-50 transition">
-                <td class="px-6 py-3 font-mono text-sm font-bold text-secondary">${hive.hive_id}</td>
-                <td class="px-6 py-3">${hive.name}</td>
-                <td class="px-6 py-3">${hive.location}</td>
-                <td class="px-6 py-3 text-center">
+                <td class="px-2 py-3 sm:px-6 font-mono text-sm font-bold text-secondary">${hive.hive_id}</td>
+                <td class="px-2 py-3 sm:px-6 text-sm">${hive.name}</td>
+                <td class="px-2 py-3 sm:px-6 text-sm hidden sm:table-cell">${hive.location}</td>
+                <td class="px-2 py-3 sm:px-6 text-center">
                     <span class="text-xs font-bold ${data ? (data.temperature_c > 35 ? 'text-red-600' : 'text-green-600') : 'text-gray-500'}">
                         ${data ? data.temperature_c.toFixed(1) + '°C' : '-'}
                     </span>
                 </td>
-                <td class="px-6 py-3 text-center">
+                <td class="px-2 py-3 sm:px-6 text-center">
                     <span class="text-xs font-bold ${data ? (data.weight_kg < 5 ? 'text-red-600' : 'text-green-600') : 'text-gray-500'}">
                         ${data ? data.weight_kg.toFixed(1) + ' kg' : '-'}
                     </span>
                 </td>
-                <td class="px-6 py-3">
+                <td class="px-2 py-3 sm:px-6 text-xs hidden md:table-cell">
                     <span class="${reportStatusColor} text-xs">
                         ${reportStatusText}
                     </span>
                 </td>
-                <td class="px-6 py-3 whitespace-nowrap text-center space-x-3">
+                <td class="px-2 py-3 sm:px-6 whitespace-nowrap text-center space-x-2 sm:space-x-3">
                     ${tareButtonHtml}
                     <button onclick="navigate('edit', ${hive.hive_id})" class="text-blue-600 hover:text-blue-800" title="Editar Colmena">
                         <i data-lucide="edit-3" class="w-5 h-5 inline"></i>
@@ -157,18 +184,19 @@ function renderAdminPanel() {
         `;
     }).join('');
 
+    // (¡NUEVO!) Título y botón de admin más pequeños en móvil
     content.innerHTML += `
-        <div class="mb-6 flex justify-between items-center">
-            <h2 class="text-3xl font-extrabold text-secondary flex items-center">
-                <i data-lucide="user-cog" class="w-8 h-8 mr-2 text-primary"></i>
+        <div class="mb-4 sm:mb-6 flex justify-between items-center">
+            <h2 class="text-xl sm:text-3xl font-extrabold text-secondary flex items-center">
+                <i data-lucide="user-cog" class="w-6 sm:w-8 h-6 sm:h-8 mr-2 text-primary"></i>
                 Panel de Administración
             </h2>
-            <p class="text-sm text-gray-500">
+            <p class="text-xs sm:text-sm text-gray-500">
                 <span class="font-bold text-secondary">Admin ID:</span> ${currentUserId || 'No Autenticado'}
             </p>
         </div>
 
-        <button onclick="navigate('edit', 'new')" class="bg-green-500 text-white font-semibold px-6 py-3 rounded-xl mb-6 shadow-md hover:bg-green-600 transition flex items-center">
+        <button onclick="navigate('edit', 'new')" class="bg-green-500 text-white font-semibold px-4 py-2 sm:px-6 sm:py-3 rounded-xl mb-6 shadow-md hover:bg-green-600 transition flex items-center text-sm sm:text-base">
             <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
             Agregar Nueva Colmena
         </button>
@@ -177,13 +205,13 @@ function renderAdminPanel() {
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-primary bg-opacity-80">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-secondary uppercase tracking-wider">ID</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-secondary uppercase tracking-wider">Nombre</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-secondary uppercase tracking-wider">Ubicación</th>
-                        <th class="px-6 py-3 text-center text-xs font-bold text-secondary uppercase tracking-wider">Última T°</th>
-                        <th class="px-6 py-3 text-center text-xs font-bold text-secondary uppercase tracking-wider">Úl. Peso</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-secondary uppercase tracking-wider">Úl. Reporte</th>
-                        <th class="px-6 py-3 text-center text-xs font-bold text-secondary uppercase tracking-wider">Acciones</th>
+                        <th class="px-2 py-3 sm:px-6 text-left text-xs font-bold text-secondary uppercase tracking-wider">ID</th>
+                        <th class="px-2 py-3 sm:px-6 text-left text-xs font-bold text-secondary uppercase tracking-wider">Nombre</th>
+                        <th class="px-2 py-3 sm:px-6 text-left text-xs font-bold text-secondary uppercase tracking-wider hidden sm:table-cell">Ubicación</th>
+                        <th class="px-2 py-3 sm:px-6 text-center text-xs font-bold text-secondary uppercase tracking-wider">T°</th>
+                        <th class="px-2 py-3 sm:px-6 text-center text-xs font-bold text-secondary uppercase tracking-wider">Peso</th>
+                        <th class="px-2 py-3 sm:px-6 text-left text-xs font-bold text-secondary uppercase tracking-wider hidden md:table-cell">Reporte</th>
+                        <th class="px-2 py-3 sm:px-6 text-center text-xs font-bold text-secondary uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -213,12 +241,13 @@ function renderEditHiveForm(hiveIdStr) {
         return;
     }
 
+    // (¡NUEVO!) Padding y fuente más pequeños en móvil
     content.innerHTML += `
-        <div class="max-w-xl mx-auto bg-white p-8 rounded-xl shadow-2xl border-t-8 border-primary">
-            <button onclick="navigate('admin')" class="text-blue-500 hover:text-blue-700 font-semibold mb-6 flex items-center">
+        <div class="max-w-xl mx-auto bg-white p-4 sm:p-8 rounded-xl shadow-2xl border-t-8 border-primary">
+            <button onclick="navigate('admin')" class="text-blue-500 hover:text-blue-700 font-semibold mb-4 sm:mb-6 flex items-center">
                 <i data-lucide="arrow-left" class="w-5 h-5 mr-1"></i> Volver al Panel
             </button>
-            <h2 class="text-3xl font-extrabold text-secondary mb-6">${isNew ? 'Agregar Nueva Colmena' : 'Editar Colmena: ' + hive.name}</h2>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-secondary mb-6">${isNew ? 'Agregar Nueva Colmena' : 'Editar Colmena: ' + hive.name}</h2>
 
             <form id="hive-form">
                 <div class="mb-4">
@@ -236,7 +265,7 @@ function renderEditHiveForm(hiveIdStr) {
                 </div>
 
                 <div class="mb-4">
-                    <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Ubicación</labe>
+                    <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
                     <input type="text" id="location" name="location" value="${hive.location}" required
                         class="w-full border border-gray-300 p-3 rounded-lg focus:ring-primary focus:border-primary">
                 </div>

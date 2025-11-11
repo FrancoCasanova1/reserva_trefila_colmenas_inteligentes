@@ -2,6 +2,9 @@
 // ARCHIVO 4: RENDERIZADO DE VISTA DE DETALLE Y GRÁFICOS
 // =================================================================
 
+// (¡NUEVO!) Variable de estado para rastrear los gráficos seleccionados
+let selectedGraphs = [];
+
 /**
  * Renderiza gráficos de línea usando Chart.js
  * @param {Array} data - Datos históricos (máximo 50 puntos)
@@ -28,7 +31,6 @@ function renderCharts(data, titleSuffix = "Últimos 50 puntos") {
         { id: 'tempChart', label: 'Temperatura (°C)', dataKey: 'temperature_c', color: 'rgb(239, 68, 68)' }, // Red-500
         { id: 'weightChart', label: 'Peso (kg)', dataKey: 'weight_kg', color: 'rgb(34, 197, 94)' }, // Green-500
         { id: 'humidityChart', label: 'Humedad (%)', dataKey: 'humidity_pct', color: 'rgb(59, 130, 246)' }, // Blue-500
-        // --- (¡CORREGIDO!) GRÁFICO DE AUDIO AHORA AMARILLO ---
         { id: 'audioChart', label: 'Actividad de Audio (ADC)', dataKey: 'audio_freq_avg', color: 'rgb(234, 179, 8)' } // Yellow-500
     ];
 
@@ -61,7 +63,7 @@ function renderCharts(data, titleSuffix = "Últimos 50 puntos") {
                         title: {
                             display: true,
                             text: `${metric.label} (${titleSuffix})`,
-                            font: { size: 16, weight: 'bold' }
+                            font: { size: 14 } // (¡NUEVO!) Fuente de título de gráfico más pequeña
                         }
                     },
                     scales: {
@@ -178,16 +180,18 @@ function generateHiveDiagnosis(hive, data, history) {
     }
 
     // --- Renderizado Final (Estilos de Tailwind aplicados aquí) ---
+    // (¡NUEVO!) Padding y texto de diagnóstico más pequeños en móvil
     const diagnosisHtml = messages.map(msg => `
-        <div class="flex items-start p-3 rounded-lg bg-${msg.color}-50 border border-${msg.color}-200 mb-3">
+        <div class="flex items-start p-2 sm:p-3 rounded-lg bg-${msg.color}-50 border border-${msg.color}-200 mb-3">
             <i data-lucide="${msg.icon}" class="w-5 h-5 text-${msg.color}-600 mt-0.5 mr-3 flex-shrink-0"></i>
-            <p class="text-sm text-gray-700">${msg.text}</p>
+            <p class="text-xs sm:text-sm text-gray-700">${msg.text}</p>
         </div>
     `).join('');
 
+    // (¡NUEVO!) Padding y texto de diagnóstico más pequeños en móvil
     return `
-        <div class="mt-8 mb-8 p-6 bg-white rounded-xl shadow-lg border-t-8 border-yellow-500">
-            <h3 class="text-2xl font-bold text-secondary mb-4 flex items-center">
+        <div class="mt-8 mb-8 p-4 sm:p-6 bg-white rounded-xl shadow-lg border-t-8 border-yellow-500">
+            <h3 class="text-xl sm:text-2xl font-bold text-secondary mb-4 flex items-center">
                 <i data-lucide="brain-circuit" class="w-6 h-6 mr-2 text-yellow-600"></i>
                 Diagnóstico de la Colmena
             </h3>
@@ -195,6 +199,99 @@ function generateHiveDiagnosis(hive, data, history) {
         </div>
     `;
 }
+
+/**
+ * (¡ACTUALIZADO!) Alterna la selección de un gráfico.
+ * @param {string} graphKey - La clave del gráfico (ej. 'temp', 'weight')
+ */
+function toggleGraphSelection(graphKey) {
+    const index = selectedGraphs.indexOf(graphKey);
+
+    // --- (¡NUEVA!) LÓGICA DE REINICIO DE CICLO ---
+    if (selectedGraphs.length === 4) {
+        // CASO 1: Todas están seleccionadas. Reiniciar el ciclo a solo la clicada.
+        selectedGraphs = [graphKey];
+    } else if (index > -1) {
+        // CASO 2: La clicada ya estaba seleccionada (y no son todas). Quitarla.
+        selectedGraphs.splice(index, 1);
+    } else {
+        // CASO 3: La clicada no estaba seleccionada. Añadirla.
+        selectedGraphs.push(graphKey);
+    }
+    // ------------------------------------------
+    
+    // 1. Actualizar la UI (opacidad y visibilidad)
+    updateGraphVisibility();
+
+    // 2. (¡NUEVO!) Scroll al contenedor de gráficos
+    const chartsSection = document.getElementById('charts-section-container');
+    if (chartsSection) {
+        // Usamos 'start' para asegurarnos de que el título "Análisis Histórico" sea visible
+        chartsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+/**
+ * (¡ACTUALIZADO!) Muestra/oculta los gráficos y opaca las tarjetas
+ * basado en el array 'selectedGraphs'.
+ */
+function updateGraphVisibility() {
+    const allGraphs = ['temp', 'weight', 'humidity', 'audio'];
+    const showAll = selectedGraphs.length === 0;
+
+    // --- (¡ACTUALIZADO!) LÓGICA DE FULL-WIDTH (Cuadrícula Dinámica) ---
+    const graphsGrid = document.getElementById('graphs-grid');
+    if (graphsGrid) {
+        if (selectedGraphs.length === 1 || selectedGraphs.length === 3) {
+            // Si hay 1 o 3 seleccionados, forzar 1 columna (full-width)
+            graphsGrid.classList.remove('md:grid-cols-2');
+            graphsGrid.classList.add('md:grid-cols-1');
+        } else {
+            // Si hay 0, 2, o 4, usar 2 columnas
+            graphsGrid.classList.remove('md:grid-cols-1');
+            graphsGrid.classList.add('md:grid-cols-2');
+        }
+    }
+    // ----------------------------------------------------
+
+    allGraphs.forEach(key => {
+        const graphContainer = document.getElementById(`graph-container-${key}`);
+        const card = document.getElementById(`sensor-card-${key}`);
+
+        if (!graphContainer || !card) return; // Salir si el elemento no existe
+
+        const isSelected = selectedGraphs.includes(key);
+
+        // 1. Visibilidad del Gráfico
+        if (showAll || isSelected) {
+            graphContainer.style.display = 'block';
+        } else {
+            graphContainer.style.display = 'none';
+        }
+
+        // 2. (¡NUEVA!) Lógica de Opacidad (en lugar del recuadro azul)
+        if (showAll) {
+            // Si no hay nada seleccionado, mostrar todo
+            card.classList.remove('opacity-50');
+            card.classList.add('opacity-100');
+        } else {
+            // Si hay algo seleccionado
+            if (isSelected) {
+                // Mostrar esta tarjeta seleccionada
+                card.classList.remove('opacity-50');
+                card.classList.add('opacity-100');
+            } else {
+                // Opacar esta tarjeta (no seleccionada)
+                card.classList.add('opacity-50');
+                card.classList.remove('opacity-100');
+            }
+        }
+        
+        // 3. (ELIMINADO) Quitar la lógica del recuadro azul (ring)
+        card.classList.remove('ring-4', 'ring-blue-500', 'ring-inset');
+    });
+}
+
 
 /**
  * Función para manejar la lógica de filtrado de historial en la vista de detalle.
@@ -229,19 +326,19 @@ async function handleHistoryFilter(hiveId) {
 
     // 4. Renderizar los gráficos
     if (chartsContainer) {
-        // --- (¡NUEVO!) Restaurar la estructura HTML del canvas (AHORA CON 4 GRÁFICOS) ---
+        // --- (¡NUEVO!) Añadido id="graphs-grid" al contenedor ---
         chartsContainer.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white p-4 rounded-xl shadow-lg h-80">
+            <div id="graphs-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div id="graph-container-temp" class="bg-white p-4 rounded-xl shadow-lg h-64 sm:h-80">
                     <canvas id="tempChart"></canvas>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow-lg h-80">
+                <div id="graph-container-weight" class="bg-white p-4 rounded-xl shadow-lg h-64 sm:h-80">
                     <canvas id="weightChart"></canvas>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow-lg h-80">
+                <div id="graph-container-humidity" class="bg-white p-4 rounded-xl shadow-lg h-64 sm:h-80">
                     <canvas id="humidityChart"></canvas>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow-lg h-80">
+                <div id="graph-container-audio" class="bg-white p-4 rounded-xl shadow-lg h-64 sm:h-80">
                     <canvas id="audioChart"></canvas>
                 </div>
             </div>`;
@@ -255,6 +352,8 @@ async function handleHistoryFilter(hiveId) {
         chartsContainer.innerHTML = '<p class="text-center text-gray-500 p-8">No se encontraron datos para los filtros seleccionados.</p>';
     }
 
+    // (¡NUEVO!) Volver a aplicar la visibilidad del gráfico después de filtrar
+    updateGraphVisibility();
     initializeIcons();
 }
 
@@ -266,6 +365,9 @@ async function renderHiveDetail(hiveIdStr) {
     const hiveId = parseInt(hiveIdStr);
     const hive = hivesMeta.find(h => h.hive_id === hiveId);
     const data = latestSensorData[hiveId];
+
+    // (¡NUEVO!) Reiniciar la selección de gráficos al cargar la vista
+    selectedGraphs = [];
     
     // 1. Mostrar un indicador de carga mientras se obtienen los datos históricos
     content.innerHTML = `
@@ -285,49 +387,52 @@ async function renderHiveDetail(hiveIdStr) {
     const diagnosisHtml = generateHiveDiagnosis(hive, data, initialHistoricalData);
 
     // 3. Renderizar Tarjetas de Datos Actuales
+    // --- (¡NUEVO!) IDs, OnClick y transition-all añadidos a las tarjetas ---
     const dataHtml = data ? `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="grid grid-cols-2 md:grid-cols-2 gap-3 sm:gap-6 mb-8">
+            
             <!-- Tarjeta de Temperatura -->
-            <div class="bg-red-50 p-6 rounded-xl shadow-md border-l-4 border-red-500">
-                <i data-lucide="thermometer" class="w-8 h-8 text-red-500 mb-2"></i>
-                <h3 class="text-xl font-semibold text-red-800">Temperatura Interna (Actual)</h3>
-                <p class="text-4xl font-extrabold text-red-900 mt-2">${data.temperature_c.toFixed(2)} °C</p>
-                <p class="text-sm text-gray-600 mt-1">${data.temperature_c > 35 ? '¡Alerta! Temperatura elevada.' : 'Nivel óptimo para la cría.'}</p>
+            <div id="sensor-card-temp" onclick="toggleGraphSelection('temp')" class="bg-red-50 p-3 sm:p-6 rounded-xl shadow-md border-l-4 border-red-500 cursor-pointer transition-all duration-300">
+                <i data-lucide="thermometer" class="w-6 h-6 sm:w-8 sm:h-8 text-red-500 mb-1 sm:mb-2"></i>
+                <h3 class="text-base sm:text-xl font-semibold text-red-800">Temperatura</h3>
+                <p id="card-temp" class="text-2xl sm:text-4xl font-extrabold text-red-900 mt-1 sm:mt-2">${data.temperature_c.toFixed(2)} °C</p>
+                <p class="text-xs text-gray-600 mt-1 hidden sm:block">${data.temperature_c > 35 ? '¡Alerta! Elevada.' : 'Nivel óptimo.'}</p>
             </div>
 
             <!-- Tarjeta de Peso -->
-            <div class="bg-green-50 p-6 rounded-xl shadow-md border-l-4 border-green-500">
-                <i data-lucide="scale" class="w-8 h-8 text-green-500 mb-2"></i>
-                <h3 class="text-xl font-semibold text-green-800">Peso de la Colmena (Actual)</h3>
-                <p class="text-4xl font-extrabold text-green-900 mt-2">${data.weight_kg.toFixed(2)} kg</p>
-                <p class="text-sm text-gray-600 mt-1">${data.weight_kg > 20 ? 'Excelente producción de miel.' : 'Peso bajo, revisar reservas.'}</p>
+            <div id="sensor-card-weight" onclick="toggleGraphSelection('weight')" class="bg-green-50 p-3 sm:p-6 rounded-xl shadow-md border-l-4 border-green-500 cursor-pointer transition-all duration-300">
+                <i data-lucide="scale" class="w-6 h-6 sm:w-8 sm:h-8 text-green-500 mb-1 sm:mb-2"></i>
+                <h3 class="text-base sm:text-xl font-semibold text-green-800">Peso</h3>
+                <p id="card-weight" class="text-2xl sm:text-4xl font-extrabold text-green-900 mt-1 sm:mt-2">${data.weight_kg.toFixed(2)} kg</p>
+                <p class="text-xs text-gray-600 mt-1 hidden sm:block">${data.weight_kg > 20 ? 'Producción alta.' : 'Peso bajo.'}</p>
             </div>
 
             <!-- Tarjeta de Humedad -->
-            <div class="bg-blue-50 p-6 rounded-xl shadow-md border-l-4 border-blue-500">
-                <i data-lucide="droplet" class="w-8 h-8 text-blue-500 mb-2"></i>
-                <h3 class="text-xl font-semibold text-blue-800">Humedad Interna (Actual)</h3>
-                <p class="text-4xl font-extrabold text-blue-900 mt-2">${data.humidity_pct.toFixed(2)} %</p>
-                <p class="text-sm text-gray-600 mt-1">${data.humidity_pct > 70 ? 'Humedad alta, posible moho.' : 'Nivel aceptable.'}</p>
+            <div id="sensor-card-humidity" onclick="toggleGraphSelection('humidity')" class="bg-blue-50 p-3 sm:p-6 rounded-xl shadow-md border-l-4 border-blue-500 cursor-pointer transition-all duration-300">
+                <i data-lucide="droplet" class="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 mb-1 sm:mb-2"></i>
+                <h3 class...
+="text-base sm:text-xl font-semibold text-blue-800">Humedad</h3>
+                <p id="card-humidity" class="text-2xl sm:text-4xl font-extrabold text-blue-900 mt-1 sm:mt-2">${data.humidity_pct.toFixed(2)} %</p>
+                <p class="text-xs text-gray-600 mt-1 hidden sm:block">${data.humidity_pct > 70 ? 'Humedad alta.' : 'Nivel aceptable.'}</p>
             </div>
 
             <!-- Tarjeta de Audio/Actividad -->
-            <div class="bg-yellow-50 p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
-                <i data-lucide="volume-2" class="w-8 h-8 text-yellow-500 mb-2"></i>
-                <h3 class="text-xl font-semibold text-yellow-800">Actividad de Audio (Actual)</h3>
-                <p class="text-4xl font-extrabold text-yellow-900 mt-2">${data.audio_freq_avg.toFixed(0)} ADC</p>
-                <p class="text-sm text-gray-600 mt-1">${data.audio_freq_avg > 2500 ? 'Actividad inusual. Revisar enjambre/reina.' : 'Actividad de rutina normal.'}</p>
+            <div id="sensor-card-audio" onclick="toggleGraphSelection('audio')" class="bg-yellow-50 p-3 sm:p-6 rounded-xl shadow-md border-l-4 border-yellow-500 cursor-pointer transition-all duration-300">
+                <i data-lucide="volume-2" class="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500 mb-1 sm:mb-2"></i>
+                <h3 class="text-base sm:text-xl font-semibold text-yellow-800">Audio</h3>
+                <p id="card-audio" class="text-2xl sm:text-4xl font-extrabold text-yellow-900 mt-1 sm:mt-2">${data.audio_freq_avg.toFixed(0)} ADC</p>
+                <p class="text-xs text-gray-600 mt-1 hidden sm:block">${data.audio_freq_avg > 2500 ? 'Actividad inusual.' : 'Rutina normal.'}</p>
             </div>
         </div>
 
-        <p class="text-right text-sm text-gray-500 mt-4">Última actualización: ${data ? new Date(data.created_at).toLocaleString('es-ES') : 'N/A'}</p>
+        <p id="card-last-update" class="text-right text-xs sm:text-sm text-gray-500 mt-4">Última actualización: ${data ? new Date(data.created_at).toLocaleString('es-ES') : 'N/A'}</p>
     ` : `<div class="bg-gray-100 p-6 rounded-xl text-center text-gray-500 font-medium">No se han recibido datos de sensor para esta colmena aún.</div>`;
 
     // 4. Renderizar Stream de Twitch
     // CONSTRUCCIÓN DE URL CORREGIDA
     const twitchEmbedHtml = hive.twitch_channel_name ? `
         <div class="mt-8">
-            <h3 class="text-2xl font-bold text-secondary mb-4 flex items-center">
+            <h3 class="text-xl sm:text-2xl font-bold text-secondary mb-4 flex items-center">
                 <i data-lucide="video" class="w-6 h-6 mr-2 text-purple-600"></i>
                 Transmisión en Vivo (Twitch)
             </h3>
@@ -345,56 +450,59 @@ async function renderHiveDetail(hiveIdStr) {
 
 
     // 5. Filtros y Gráficos (Diseño de filtro corregido)
+    // --- (¡NUEVO!) ID añadido al contenedor de la sección de gráficos para el scroll ---
     const chartsHtml = `
-        <div class="mt-10">
-            <h3 class="text-2xl font-bold text-secondary mb-4 flex items-center">
+        <div id="charts-section-container" class="mt-10">
+            <h3 class="text-xl sm:text-2xl font-bold text-secondary mb-4 flex items-center">
                 <i data-lucide="line-chart" class="w-6 h-6 mr-2 text-primary"></i>
                 Análisis Histórico
             </h3>
             
             <!-- SECCIÓN DE FILTROS (DISEÑO CORREGIDO) -->
-            <div class="bg-white p-4 rounded-xl shadow-md mb-6 border-l-4 border-blue-500">
-                <h4 class="font-bold text-lg text-blue-800 mb-3">Filtrar Historial</h4>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+            <div class="bg-white p-3 sm:p-4 rounded-xl shadow-md mb-6 border-l-4 border-blue-500">
+                <h4 class="font-bold text-base sm:text-lg text-blue-800 mb-3">Filtrar Historial</h4>
+                <!-- (¡NUEVO!) Grid de 2 columnas en móvil, 5 en desktop -->
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
                     
                     <div>
-                        <label for="filter-start-date" class="block text-sm font-medium text-gray-700">Fecha Inicio</label>
-                        <input type="date" id="filter-start-date" class="w-full border border-gray-300 p-2 rounded-lg mt-1">
+                        <label for="filter-start-date" class="block text-xs sm:text-sm font-medium text-gray-700">Fecha Inicio</label>
+                        <input type="date" id="filter-start-date" class="w-full border border-gray-300 p-2 rounded-lg mt-1 text-sm">
                     </div>
                     <div>
-                        <label for="filter-end-date" class="block text-sm font-medium text-gray-700">Fecha Fin</label>
-                        <input type="date" id="filter-end-date" class="w-full border border-gray-300 p-2 rounded-lg mt-1">
+                        <label for="filter-end-date" class="block text-xs sm:text-sm font-medium text-gray-700">Fecha Fin</label>
+                        <input type="date" id="filter-end-date" class="w-full border border-gray-300 p-2 rounded-lg mt-1 text-sm">
                     </div>
                     
                     <div>
-                        <label for="filter-start-time" class="block text-sm font-medium text-gray-700">Hora Inicio</label>
-                        <input type="time" id="filter-start-time" class="w-full border border-gray-300 p-2 rounded-lg mt-1">
+                        <label for="filter-start-time" class="block text-xs sm:text-sm font-medium text-gray-700">Hora Inicio</label>
+                        <input type="time" id="filter-start-time" class="w-full border border-gray-300 p-2 rounded-lg mt-1 text-sm">
                     </div>
                     <div>
-                        <label for="filter-end-time" class="block text-sm font-medium text-gray-700">Hora Fin</label>
-                        <input type="time" id="filter-end-time" class="w-full border border-gray-300 p-2 rounded-lg mt-1">
+                        <label for="filter-end-time" class="block text-xs sm:text-sm font-medium text-gray-700">Hora Fin</label>
+                        <input type="time" id="filter-end-time" class="w-full border border-gray-300 p-2 rounded-lg mt-1 text-sm">
                     </div>
 
-                    <button id="filter-apply-btn" class="bg-blue-500 text-white font-semibold rounded-lg px-4 py-2 h-10 hover:bg-blue-600 transition w-full">
+                    <!-- Botón ocupa 2 columnas en móvil -->
+                    <button id="filter-apply-btn" class="bg-blue-500 text-white font-semibold rounded-lg px-4 py-2 h-10 hover:bg-blue-600 transition w-full col-span-2 md:col-span-1 text-sm">
                         Aplicar Filtros
                     </button>
                 </div>
             </div>
 
-            <!-- CONTENEDOR DE GRÁFICOS (¡NUEVO! CUADRÍCULA 2x2) -->
+            <!-- CONTENEDOR DE GRÁFICOS (¡NUEVO!) id="graphs-grid" añadido -->
             <div id="charts-container">
                 ${initialHistoricalData.length > 0 ? `
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white p-4 rounded-xl shadow-lg h-80">
+                    <div id="graphs-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div id="graph-container-temp" class="bg-white p-4 rounded-xl shadow-lg h-64 sm:h-80">
                             <canvas id="tempChart"></canvas>
                         </div>
-                        <div class="bg-white p-4 rounded-xl shadow-lg h-80">
+                        <div id="graph-container-weight" class="bg-white p-4 rounded-xl shadow-lg h-64 sm:h-80">
                             <canvas id="weightChart"></canvas>
                         </div>
-                        <div class="bg-white p-4 rounded-xl shadow-lg h-80">
+                        <div id="graph-container-humidity" class="bg-white p-4 rounded-xl shadow-lg h-64 sm:h-80">
                             <canvas id="humidityChart"></canvas>
                         </div>
-                        <div class="bg-white p-4 rounded-xl shadow-lg h-80">
+                        <div id="graph-container-audio" class="bg-white p-4 rounded-xl shadow-lg h-64 sm:h-80">
                             <canvas id="audioChart"></canvas>
                         </div>
                     </div>` : 
@@ -404,23 +512,23 @@ async function renderHiveDetail(hiveIdStr) {
         </div>
     `;
 
-
+    // (¡NUEVO!) Título más pequeño en móvil
     content.innerHTML = `
         <div class="mb-8">
             <button onclick="navigate('dashboard')" class="text-blue-500 hover:text-blue-700 font-semibold mb-4 flex items-center">
                 <i data-lucide="arrow-left" class="w-5 h-5 mr-1"></i> Volver al Apiario
             </button>
-            <h2 class="text-3xl font-extrabold text-secondary mb-2">${hive.name}</h2>
-            <p class="text-lg text-gray-600 mb-6">ID: ${hive.hive_id} | Ubicación: ${hive.location}</p>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-secondary mb-2">${hive.name}</h2>
+            <p class="text-base sm:text-lg text-gray-600 mb-6">ID: ${hive.hive_id} | Ubicación: ${hive.location}</p>
 
             ${dataHtml}
             ${diagnosisHtml}
             ${twitchEmbedHtml}
             ${chartsHtml}
 
-            <div class="mt-8 p-6 bg-white rounded-xl shadow-md">
+            <div class="mt-8 p-4 sm:p-6 bg-white rounded-xl shadow-md">
                 <h3 class="text-xl font-bold text-secondary mb-3">Notas de Administrador</h3>
-                <p class="text-gray-700 italic">${hive.notes || 'No hay notas añadidas para esta colmena.'}</p>
+                <p class="text-sm sm:text-base text-gray-700 italic">${hive.notes || 'No hay notas añadidas para esta colmena.'}</p>
             </div>
         </div>
     `;

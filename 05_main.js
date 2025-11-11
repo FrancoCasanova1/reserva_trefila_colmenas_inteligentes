@@ -507,6 +507,33 @@ async function handleTareCommand(hiveId) {
 // =================================================================
 
 /**
+ * (¡NUEVO!) Actualiza solo las tarjetas de datos en la vista de detalle.
+ * @param {object} data - El nuevo registro de sensor_data
+ */
+function updateDetailCards(data) {
+    console.log("Actualizando tarjetas de detalle en tiempo real...");
+    
+    const tempEl = document.getElementById('card-temp');
+    if (tempEl) tempEl.textContent = `${data.temperature_c.toFixed(2)} °C`;
+    
+    const weightEl = document.getElementById('card-weight');
+    if (weightEl) weightEl.textContent = `${data.weight_kg.toFixed(2)} kg`;
+
+    const humidityEl = document.getElementById('card-humidity');
+    if (humidityEl) humidityEl.textContent = `${data.humidity_pct.toFixed(2)} %`;
+
+    const audioEl = document.getElementById('card-audio');
+    if (audioEl) audioEl.textContent = `${data.audio_freq_avg.toFixed(0)} ADC`;
+
+    const updateEl = document.getElementById('card-last-update');
+    if (updateEl) updateEl.textContent = `Última actualización: ${new Date(data.created_at).toLocaleString('es-ES')}`;
+    
+    // También actualizamos el objeto de datos local
+    latestSensorData[data.hive_id] = data;
+}
+
+
+/**
  * Configura las suscripciones de Supabase Realtime.
  * Esto escucha cambios en la DB (Tara completada, nuevos datos de sensor)
  * y actualiza la UI sin necesidad de refrescar la página.
@@ -546,13 +573,21 @@ function subscribeToChanges() {
                 // Un ESP32 envió nuevos datos de sensor
                 const newSensorData = payload.new;
                 
-                // Actualizar la data local
+                // Actualizar la data local (para que fetchData no la pida de nuevo)
                 latestSensorData[newSensorData.hive_id] = newSensorData;
 
-                // Solo recargar si estamos en el dashboard o admin
+                // --- (¡NUEVO!) LÓGICA DE ACTUALIZACIÓN INTELIGENTE ---
                 const currentHash = window.location.hash;
+
                 if (currentHash.includes('#dashboard') || currentHash.includes('#admin')) {
-                    handleRoute(); // Re-renderizar la vista actual (actualizará los valores)
+                    // Si estamos en Dashboard o Admin, recargar toda la vista
+                    handleRoute(); 
+                } else if (currentHash.includes('#detail')) {
+                    // Si estamos en Detalle, solo actualizar las tarjetas
+                    const [, hiveId] = currentHash.split('/');
+                    if (newSensorData.hive_id == hiveId) {
+                        updateDetailCards(newSensorData);
+                    }
                 }
             }
         }

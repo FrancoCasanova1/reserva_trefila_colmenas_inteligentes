@@ -116,14 +116,21 @@ function renderWeatherBar() {
     `;
 }
 
+/**
+ * (¡CORREGIDO!) Esta función ahora separa el conteo de la generación de HTML.
+ */
 function renderAlertsList() {
-     // Lógica simple de alertas basada en umbrales fijos para el demo
-    const alerts = hivesMeta.filter(hive => {
+    
+    // --- (¡NUEVO!) PASO 1: Filtrar el array para OBTENER las colmenas con alertas
+    const alertHives = hivesMeta.filter(hive => {
         const data = latestSensorData[hive.hive_id];
         if (!data) return isReportStale(null); // Alertar si no hay datos
         // Condiciones de alerta
         return data.temperature_c > 35 || data.weight_kg < 5 || isReportStale(data.created_at) || data.audio_freq_avg > 2500;
-    }).map(hive => {
+    });
+
+    // --- (¡NUEVO!) PASO 2: Mapear ese array filtrado a HTML
+    const alertsHtml = alertHives.map(hive => {
         const data = latestSensorData[hive.hive_id];
         let reason = 'Estado de meta: ' + hive.status;
         
@@ -155,14 +162,17 @@ function renderAlertsList() {
         `;
     }).join('');
 
+    // --- (¡NUEVO!) PASO 3: Usar las variables correctas en el HTML final
     return `
         <div class="mb-8">
-            <h2 class="text-2xl font-bold text-secondary mb-4 flex items-center">
+            <!-- (¡CORREGIDO!) Usa alertHives.length para el CONTEO -->
+            <h2 class="text-xl sm:text-2xl font-bold text-secondary mb-4 flex items-center">
                 <i data-lucide="siren" class="w-6 h-6 mr-2 text-red-500"></i>
-                Alertas del Apiario (${alerts.length})
+                Alertas del Apiario (${alertHives.length})
             </h2>
             <div class="space-y-3">
-                ${alerts.length > 0 ? alerts : '<p class="text-gray-500 italic">No hay alertas activas en este momento.</p>'}
+                <!-- (¡CORREGIDO!) Usa alertHives.length para la condición y alertsHtml para el contenido -->
+                ${alertHives.length > 0 ? alertsHtml : '<p class="text-gray-500 italic">No hay alertas activas en este momento.</p>'}
             </div>
         </div>
     `;
