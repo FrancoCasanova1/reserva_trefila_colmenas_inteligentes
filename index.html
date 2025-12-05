@@ -5,29 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apiario Digital - Colmenas Inteligentes</title>
     
-    <!-- Carga de Tailwind CSS (Play CDN) -->
+    <!-- Carga de Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Carga de Lucide Icons (Iconos modernos) -->
+    <!-- Carga de Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- Carga del Cliente de Supabase JS -->
+    <!-- Carga de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- Carga de Chart.js para visualización de datos -->
+    <!-- Carga de Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
-    <!-- Carga de Estilos Locales -->
+    <!-- Estilos Locales -->
     <link rel="stylesheet" href="style.css">
 
     <script>
-        // Configuración de Tailwind para que reconozca los colores
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#FFC300', // Amarillo Miel
-                        secondary: '#3C2F2F', // Marrón Oscuro
+                        primary: '#FFC300',
+                        secondary: '#3C2F2F',
                     }
                 }
             }
@@ -36,13 +35,10 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
 
-    <!-- Contenedor Principal de la Aplicación (Padding reducido en móvil) -->
+    <!-- App Container -->
     <div id="app" class="max-w-7xl mx-auto p-3 sm:p-4 md:p-8">
-
-        <!-- Header y Navegación (Más compacto en móvil) -->
         <header class="flex justify-between items-center py-3 mb-4 sm:py-4 sm:mb-6 border-b-4 border-primary">
             <h1 class="text-2xl sm:text-3xl font-extrabold text-secondary flex items-center cursor-pointer" onclick="navigate('dashboard')">
-                <!-- Icono de Hexágono -->
                 <i data-lucide="hexagon" class="w-7 h-7 sm:w-8 sm:h-8 mr-2 text-primary"></i>
                 Apiario Digital
             </h1>
@@ -51,17 +47,15 @@
             </button>
         </header>
 
-        <!-- Contenedor de Vistas (Contenido Dinámico) -->
         <div id="content">
             <div id="loading-spinner" class="flex justify-center items-center h-64">
                 <div class="loader mr-3"></div>
                 <p class="text-secondary font-medium">Cargando datos del apiario...</p>
             </div>
         </div>
-
     </div>
 
-    <!-- Modal para Mensajes/Alertas (Padding reducido en móvil) -->
+    <!-- Modales -->
     <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
         <div class="bg-white p-4 sm:p-6 rounded-xl shadow-2xl max-w-sm w-full">
             <h3 id="modal-title" class="text-lg sm:text-xl font-bold mb-3 text-secondary">Título</h3>
@@ -70,28 +64,20 @@
         </div>
     </div>
 
-    <!-- Modal de Login (Padding reducido en móvil) -->
     <div id="login-modal" onclick="closeLoginModal()" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
         <div onclick="event.stopPropagation()" class="bg-white p-4 sm:p-6 rounded-xl shadow-2xl max-w-sm w-full relative">
-            
-            <!-- Botón de Cerrar (X) -->
             <button onclick="closeLoginModal()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
                 <i data-lucide="x" class="w-6 h-6"></i>
             </button>
-
             <h3 class="text-xl sm:text-2xl font-bold mb-4 text-secondary">Acceso de Administrador</h3>
             <input type="email" id="admin-email" placeholder="Email Admin" class="w-full border border-gray-300 p-3 rounded-lg mb-3 focus:ring-primary focus:border-primary">
             <input type="password" id="admin-password" placeholder="Contraseña" class="w-full border border-gray-300 p-3 rounded-lg mb-4 focus:ring-primary focus:border-primary">
             <button onclick="handleLogin()" class="w-full bg-primary text-secondary font-semibold py-3 rounded-lg hover:bg-yellow-600 transition">Ingresar</button>
-            <p id="login-error" class="text-red-500 mt-2 text-sm hidden">Error de autenticación. Verifica tus credenciales.</p>
+            <p id="login-error" class="text-red-500 mt-2 text-sm hidden">Error de autenticación.</p>
         </div>
     </div>
 
-    <!-- Carga de Scripts Locales (EN ORDEN) -->
-    <script src="01_config.js"></script>
-    <script src="02_ui_core.js"></script>
-    <script src="03_ui_views.js"></script>
-    <script src="04_ui_detail.js"></script>
-    <script src="05_main.js"></script>
+    <!-- Carga del ÚNICO script maestro -->
+    <script src="script.js"></script>
 </body>
 </html>
