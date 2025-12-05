@@ -5,22 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apiario Digital - Colmenas Inteligentes</title>
     
-    <!-- Carga de Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Carga de Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Carga de Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Carga de Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- Favicon integrado para evitar error 404 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐝</text></svg>">
 
-    <!-- Estilos Locales -->
+    <!-- 1. Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 2. Supabase (Intentamos cargar desde unpkg que a veces es más permisivo que jsdelivr) -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <!-- 3. Chart.js (Usamos cdnjs, suele ser muy estable) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    
+    <!-- 4. Lucide Icons (Iconos) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Enlace a los estilos locales -->
     <link rel="stylesheet" href="style.css">
 
     <script>
+        // Configuración de Tailwind
         tailwind.config = {
             theme: {
                 extend: {
@@ -35,8 +39,16 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
 
-    <!-- App Container -->
+    <!-- Alerta de Error de Carga de Librerías -->
+    <div id="lib-error" class="hidden bg-red-600 text-white p-4 text-center font-bold fixed top-0 left-0 w-full z-50">
+        ¡Error Crítico! No se pudieron cargar las librerías (Supabase/Chart.js). 
+        <br> Por favor, desactiva tu bloqueador de anuncios (AdBlock) o intenta usar otra red.
+    </div>
+
+    <!-- Contenedor Principal -->
     <div id="app" class="max-w-7xl mx-auto p-3 sm:p-4 md:p-8">
+
+        <!-- Header y Navegación -->
         <header class="flex justify-between items-center py-3 mb-4 sm:py-4 sm:mb-6 border-b-4 border-primary">
             <h1 class="text-2xl sm:text-3xl font-extrabold text-secondary flex items-center cursor-pointer" onclick="navigate('dashboard')">
                 <i data-lucide="hexagon" class="w-7 h-7 sm:w-8 sm:h-8 mr-2 text-primary"></i>
@@ -55,7 +67,7 @@
         </div>
     </div>
 
-    <!-- Modales -->
+    <!-- Modal para Mensajes/Alertas -->
     <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
         <div class="bg-white p-4 sm:p-6 rounded-xl shadow-2xl max-w-sm w-full">
             <h3 id="modal-title" class="text-lg sm:text-xl font-bold mb-3 text-secondary">Título</h3>
@@ -64,6 +76,7 @@
         </div>
     </div>
 
+    <!-- Modal de Login -->
     <div id="login-modal" onclick="closeLoginModal()" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
         <div onclick="event.stopPropagation()" class="bg-white p-4 sm:p-6 rounded-xl shadow-2xl max-w-sm w-full relative">
             <button onclick="closeLoginModal()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
@@ -76,6 +89,16 @@
             <p id="login-error" class="text-red-500 mt-2 text-sm hidden">Error de autenticación.</p>
         </div>
     </div>
+
+    <!-- Verificación de carga antes de ejecutar el script principal -->
+    <script>
+        window.onload = function() {
+            if (typeof supabase === 'undefined' || typeof Chart === 'undefined') {
+                document.getElementById('lib-error').classList.remove('hidden');
+                document.getElementById('loading-spinner').innerHTML = '<p class="text-red-500 font-bold">Fallo crítico: Librerías no cargadas.</p>';
+            }
+        };
+    </script>
 
     <!-- Carga del ÚNICO script maestro -->
     <script src="script.js"></script>
