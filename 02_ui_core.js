@@ -82,7 +82,6 @@ function renderWeatherBar() {
     if (!weatherData || !weatherData.current || !weatherData.forecast) return '';
     const current = weatherData.current;
     
-    // Fallback por si la API de pronóstico falló pero la actual funcionó
     const forecastHtml = weatherData.forecast.length > 0 ? 
         weatherData.forecast.map(f => `
         <div class="flex flex-col items-center p-2">
@@ -117,19 +116,24 @@ function renderWeatherBar() {
 }
 
 /**
- * (¡CORREGIDO!) Esta función ahora separa el conteo de la generación de HTML.
+ * Renderiza la lista de alertas usando la configuración dinámica.
  */
 function renderAlertsList() {
     
-    // --- (¡NUEVO!) PASO 1: Filtrar el array para OBTENER las colmenas con alertas
+    // 1. Filtrar colmenas con alertas usando alertsConfig
     const alertHives = hivesMeta.filter(hive => {
         const data = latestSensorData[hive.hive_id];
-        if (!data) return isReportStale(null); // Alertar si no hay datos
-        // Condiciones de alerta
-        return data.temperature_c > 35 || data.weight_kg < 5 || isReportStale(data.created_at) || data.audio_freq_avg > 2500;
+        if (!data) return isReportStale(null); 
+        
+        // Usar variables de alertsConfig
+        return data.temperature_c > alertsConfig.max_temp || 
+               data.temperature_c < alertsConfig.min_temp ||
+               data.weight_kg < alertsConfig.min_weight || 
+               isReportStale(data.created_at) || 
+               data.audio_freq_avg > alertsConfig.max_audio;
     });
 
-    // --- (¡NUEVO!) PASO 2: Mapear ese array filtrado a HTML
+    // 2. Generar HTML
     const alertsHtml = alertHives.map(hive => {
         const data = latestSensorData[hive.hive_id];
         let reason = 'Estado de meta: ' + hive.status;
@@ -137,12 +141,14 @@ function renderAlertsList() {
         if (data) {
             if (isReportStale(data.created_at)) {
                 reason = `¡REPORTE ANTIGUO! Última conexión: ${new Date(data.created_at).toLocaleString('es-ES')}`;
-            } else if (data.temperature_c > 35) {
-                reason = `Temperatura alta (${data.temperature_c.toFixed(1)}°C). Posible enjambre.`;
-            } else if (data.weight_kg < 5) {
-                reason = `Peso críticamente bajo (${data.weight_kg.toFixed(1)} kg).`;
-            } else if (data.audio_freq_avg > 2500) {
-                reason = `Actividad de audio anormalmente alta.`;
+            } else if (data.temperature_c > alertsConfig.max_temp) {
+                reason = `Temperatura alta (${data.temperature_c.toFixed(1)}°C > ${alertsConfig.max_temp}°C).`;
+            } else if (data.temperature_c < alertsConfig.min_temp) {
+                reason = `Temperatura baja (${data.temperature_c.toFixed(1)}°C < ${alertsConfig.min_temp}°C).`;
+            } else if (data.weight_kg < alertsConfig.min_weight) {
+                reason = `Peso bajo (${data.weight_kg.toFixed(1)} kg < ${alertsConfig.min_weight} kg).`;
+            } else if (data.audio_freq_avg > alertsConfig.max_audio) {
+                reason = `Audio alto (${data.audio_freq_avg.toFixed(0)} > ${alertsConfig.max_audio}).`;
             }
         } else if (isReportStale(null)) {
             reason = "¡INACTIVA! Nunca ha enviado datos o está desconectada.";
@@ -162,16 +168,13 @@ function renderAlertsList() {
         `;
     }).join('');
 
-    // --- (¡NUEVO!) PASO 3: Usar las variables correctas en el HTML final
     return `
         <div class="mb-8">
-            <!-- (¡CORREGIDO!) Usa alertHives.length para el CONTEO -->
             <h2 class="text-xl sm:text-2xl font-bold text-secondary mb-4 flex items-center">
                 <i data-lucide="siren" class="w-6 h-6 mr-2 text-red-500"></i>
                 Alertas del Apiario (${alertHives.length})
             </h2>
             <div class="space-y-3">
-                <!-- (¡CORREGIDO!) Usa alertHives.length para la condición y alertsHtml para el contenido -->
                 ${alertHives.length > 0 ? alertsHtml : '<p class="text-gray-500 italic">No hay alertas activas en este momento.</p>'}
             </div>
         </div>

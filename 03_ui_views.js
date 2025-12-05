@@ -8,8 +8,7 @@ function renderPublicDashboard() {
     // 1. Renderizar Alertas (siempre primero)
     content.innerHTML += renderAlertsList();
 
-    // (¡NUEVO!) SVG de la colmena Langstroth (cajas apiladas)
-    // Este SVG es más moderno y profesional
+    // SVG de la colmena Langstroth (cajas apiladas)
     const beehiveSvg = `
         <svg viewBox="0 0 100 120" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g stroke="#3C2F2F" stroke-width="2">
@@ -41,7 +40,13 @@ function renderPublicDashboard() {
             if (isReportStale(data.created_at)) {
                 statusColorClass = 'bg-orange-400';
                 statusText = 'Reporte Antiguo';
-            } else if (data.temperature_c > 35 || data.weight_kg < 5) {
+            } else if (
+                // Usar variables de alertsConfig
+                data.temperature_c > alertsConfig.max_temp || 
+                data.temperature_c < alertsConfig.min_temp ||
+                data.weight_kg < alertsConfig.min_weight ||
+                data.audio_freq_avg > alertsConfig.max_audio
+            ) {
                 statusColorClass = 'bg-red-500';
                 statusText = 'Alerta Crítica';
             } else {
@@ -51,7 +56,6 @@ function renderPublicDashboard() {
         }
 
         // Renderiza los iconos de valores sensados
-        // (¡NUEVO!) Gap reducido en móvil
         const sensorIcons = data ? `
             <div class="flex flex-wrap justify-center gap-2 sm:gap-3">
                 <div class="text-center">
@@ -75,15 +79,15 @@ function renderPublicDashboard() {
 
 
         return `
-            <!-- (¡NUEVO!) Padding reducido en móvil -->
+            <!-- Padding reducido en móvil -->
             <div onclick="navigate('detail', ${hive.hive_id})" class="bg-white p-4 sm:p-6 rounded-xl shadow-lg hover:shadow-xl transition cursor-pointer border-t-8 border-primary">
                 
-                <!-- (¡NUEVO!) SVG más pequeño en móvil -->
+                <!-- SVG más pequeño en móvil -->
                 <div class="w-[100px] h-[120px] sm:w-[120px] sm:h-[140px] mx-auto my-4">
                     ${beehiveSvg}
                 </div>
 
-                <!-- (¡NUEVO!) Fuente de título más pequeña en móvil -->
+                <!-- Fuente de título más pequeña en móvil -->
                 <h3 class="text-lg sm:text-xl font-bold text-center text-secondary mb-2">${hive.name} (ID: ${hive.hive_id})</h3>
                 <p class="text-sm text-center text-gray-600 mb-4">${hive.location}</p>
 
@@ -100,13 +104,14 @@ function renderPublicDashboard() {
     }).join('');
 
     // 3. Añadir el contenedor de tarjetas al contenido
-    // (¡NUEVO!) Título más pequeño en móvil
     content.innerHTML += `
         <h2 class="text-xl sm:text-2xl font-bold text-secondary mb-4 mt-6">
             <i data-lucide="grid-3x3" class="w-6 h-6 mr-2 text-primary"></i>
             Vista General del Apiario
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <!-- Clases de cuadrícula actualizadas a 2 columnas en escritorio -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             ${hivesMeta.length > 0 ? hiveCards : '<p class="text-gray-500 italic">No hay colmenas configuradas. Inicia sesión como Admin para agregar una.</p>'}
         </div>
     `;
@@ -118,7 +123,6 @@ function renderPublicDashboard() {
 function renderAdminPanel() {
     const content = document.getElementById('content');
     if (!isAuthenticated) {
-        // Redirigir al dashboard si no está autenticado
         navigate('dashboard');
         showModal("Acceso Restringido", "Debes iniciar sesión para acceder al panel de administración.");
         return;
@@ -142,51 +146,41 @@ function renderAdminPanel() {
             }
         }
         
-        // Revisar si hay una tara pendiente
         const tarePending = hive.tare_command === 'TARE_REQUESTED';
         const tareButtonHtml = tarePending ?
             `<span class="text-xs font-medium text-orange-500 animate-pulse">Tara Pendiente...</span>` :
-            `<button onclick="handleTareCommand(${hive.hive_id})" class="text-blue-600 hover:text-blue-800" title="Realizar Tara (Poner peso a Cero)">
+            `<button onclick="handleTareCommand(${hive.hive_id})" class="text-blue-600 hover:text-blue-800" title="Realizar Tara">
                 <i data-lucide="rotate-ccw" class="w-5 h-5 inline"></i>
             </button>`;
 
-        // (¡NUEVO!) Clases de padding y texto responsivas para la tabla
         return `
             <tr class="border-b hover:bg-yellow-50 transition">
                 <td class="px-2 py-3 sm:px-6 font-mono text-sm font-bold text-secondary">${hive.hive_id}</td>
                 <td class="px-2 py-3 sm:px-6 text-sm">${hive.name}</td>
                 <td class="px-2 py-3 sm:px-6 text-sm hidden sm:table-cell">${hive.location}</td>
                 <td class="px-2 py-3 sm:px-6 text-center">
-                    <span class="text-xs font-bold ${data ? (data.temperature_c > 35 ? 'text-red-600' : 'text-green-600') : 'text-gray-500'}">
+                    <span class="text-xs font-bold ${data ? (data.temperature_c > alertsConfig.max_temp ? 'text-red-600' : 'text-green-600') : 'text-gray-500'}">
                         ${data ? data.temperature_c.toFixed(1) + '°C' : '-'}
                     </span>
                 </td>
                 <td class="px-2 py-3 sm:px-6 text-center">
-                    <span class="text-xs font-bold ${data ? (data.weight_kg < 5 ? 'text-red-600' : 'text-green-600') : 'text-gray-500'}">
+                    <span class="text-xs font-bold ${data ? (data.weight_kg < alertsConfig.min_weight ? 'text-red-600' : 'text-green-600') : 'text-gray-500'}">
                         ${data ? data.weight_kg.toFixed(1) + ' kg' : '-'}
                     </span>
                 </td>
                 <td class="px-2 py-3 sm:px-6 text-xs hidden md:table-cell">
-                    <span class="${reportStatusColor} text-xs">
-                        ${reportStatusText}
-                    </span>
+                    <span class="${reportStatusColor} text-xs">${reportStatusText}</span>
                 </td>
                 <td class="px-2 py-3 sm:px-6 whitespace-nowrap text-center space-x-2 sm:space-x-3">
                     ${tareButtonHtml}
-                    <button onclick="navigate('edit', ${hive.hive_id})" class="text-blue-600 hover:text-blue-800" title="Editar Colmena">
-                        <i data-lucide="edit-3" class="w-5 h-5 inline"></i>
-                    </button>
-                    <button onclick="deleteHive(${hive.hive_id})" class="text-red-600 hover:text-red-800" title="Eliminar Colmena">
-                        <i data-lucide="trash-2" class="w-5 h-5 inline"></i>
-                    </button>
+                    <button onclick="navigate('edit', ${hive.hive_id})" class="text-blue-600 hover:text-blue-800"><i data-lucide="edit-3" class="w-5 h-5 inline"></i></button>
+                    <button onclick="deleteHive(${hive.hive_id})" class="text-red-600 hover:text-red-800"><i data-lucide="trash-2" class="w-5 h-5 inline"></i></button>
                 </td>
-            </tr>
-        `;
+            </tr>`;
     }).join('');
 
-    // (¡NUEVO!) Título y botón de admin más pequeños en móvil
     content.innerHTML += `
-        <div class="mb-4 sm:mb-6 flex justify-between items-center">
+        <div class="mb-6 flex justify-between items-center">
             <h2 class="text-xl sm:text-3xl font-extrabold text-secondary flex items-center">
                 <i data-lucide="user-cog" class="w-6 sm:w-8 h-6 sm:h-8 mr-2 text-primary"></i>
                 Panel de Administración
@@ -196,10 +190,16 @@ function renderAdminPanel() {
             </p>
         </div>
 
-        <button onclick="navigate('edit', 'new')" class="bg-green-500 text-white font-semibold px-4 py-2 sm:px-6 sm:py-3 rounded-xl mb-6 shadow-md hover:bg-green-600 transition flex items-center text-sm sm:text-base">
-            <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
-            Agregar Nueva Colmena
-        </button>
+        <div class="flex gap-4 mb-6">
+            <button onclick="navigate('edit', 'new')" class="bg-green-500 text-white font-semibold px-4 py-2 sm:px-6 sm:py-3 rounded-xl shadow-md hover:bg-green-600 transition flex items-center text-sm sm:text-base">
+                <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
+                Agregar Nueva Colmena
+            </button>
+            <button onclick="openAlertsConfigModal()" class="bg-orange-500 text-white font-semibold px-4 py-2 sm:px-6 sm:py-3 rounded-xl shadow-md hover:bg-orange-600 transition flex items-center text-sm sm:text-base">
+                <i data-lucide="settings" class="w-5 h-5 mr-2"></i>
+                Configurar Alertas
+            </button>
+        </div>
 
         <div class="bg-white rounded-xl shadow-xl overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -219,7 +219,41 @@ function renderAdminPanel() {
                 </tbody>
             </table>
         </div>
+        
+        <div id="alerts-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4" onclick="document.getElementById('alerts-modal').classList.add('hidden')">
+            <div onclick="event.stopPropagation()" class="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full relative">
+                <button onclick="document.getElementById('alerts-modal').classList.add('hidden')" class="absolute top-3 right-3 text-gray-400 hover:text-secondary transition"><i data-lucide="x" class="w-6 h-6"></i></button>
+                <h3 class="text-2xl font-bold mb-4 text-secondary">Configurar Umbrales de Alerta</h3>
+                <form id="alerts-form">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Temp. Máxima (°C)</label>
+                        <input type="number" name="max_temp" id="conf_max_temp" step="0.1" class="w-full border p-2 rounded" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Temp. Mínima (°C)</label>
+                        <input type="number" name="min_temp" id="conf_min_temp" step="0.1" class="w-full border p-2 rounded" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Peso Mínimo (kg)</label>
+                        <input type="number" name="min_weight" id="conf_min_weight" step="0.1" class="w-full border p-2 rounded" required>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700">Audio Máximo (ADC)</label>
+                        <input type="number" name="max_audio" id="conf_max_audio" step="1" class="w-full border p-2 rounded" required>
+                    </div>
+                    <button type="submit" class="w-full bg-primary text-secondary font-bold py-2 rounded hover:bg-yellow-500 transition">Guardar Cambios</button>
+                </form>
+            </div>
+        </div>
     `;
+    
+    const alertsForm = document.getElementById('alerts-form');
+    if(alertsForm) {
+        alertsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveAlertsConfig();
+        });
+    }
     initializeIcons();
 }
 
@@ -227,70 +261,27 @@ function renderEditHiveForm(hiveIdStr) {
     const content = document.getElementById('content');
     if (!isAuthenticated) {
         navigate('dashboard');
-        showModal("Acceso Restringido", "Debes iniciar sesión para administrar colmenas.");
         return;
     }
-
     const isNew = hiveIdStr === 'new';
     const hiveId = isNew ? null : parseInt(hiveIdStr);
-    // Usamos un objeto vacío o la data existente
     const hive = isNew ? { hive_id: '', name: '', location: '', status: 'Normal', notes: '', twitch_channel_name: '' } : hivesMeta.find(h => h.hive_id === hiveId);
 
-    if (!hive && !isNew) {
-        content.innerHTML = '<p class="text-red-500 p-8">Colmena no encontrada para editar.</p>';
-        return;
-    }
+    if (!hive && !isNew) { content.innerHTML = '<p>Error</p>'; return; }
 
-    // (¡NUEVO!) Padding y fuente más pequeños en móvil
     content.innerHTML += `
-        <div class="max-w-xl mx-auto bg-white p-4 sm:p-8 rounded-xl shadow-2xl border-t-8 border-primary">
-            <button onclick="navigate('admin')" class="text-blue-500 hover:text-blue-700 font-semibold mb-4 sm:mb-6 flex items-center">
-                <i data-lucide="arrow-left" class="w-5 h-5 mr-1"></i> Volver al Panel
-            </button>
-            <h2 class="text-2xl sm:text-3xl font-extrabold text-secondary mb-6">${isNew ? 'Agregar Nueva Colmena' : 'Editar Colmena: ' + hive.name}</h2>
-
+        <div class="max-w-xl mx-auto bg-white p-8 rounded-xl shadow-2xl border-t-8 border-primary">
+            <button onclick="navigate('admin')" class="text-blue-500 hover:text-blue-700 font-semibold mb-6 flex items-center"><i data-lucide="arrow-left" class="w-5 h-5 mr-1"></i> Volver</button>
+            <h2 class="text-3xl font-extrabold text-secondary mb-6">${isNew ? 'Nueva Colmena' : 'Editar ' + hive.name}</h2>
             <form id="hive-form">
-                <div class="mb-4">
-                    <label for="hive_id" class="block text-sm font-medium text-gray-700 mb-1">ID Único de Colmena (Del ESP32)</label>
-                    <input type="number" id="hive_id" name="hive_id" value="${hive.hive_id}"
-                        ${isNew ? 'required' : 'readonly class="bg-gray-100 cursor-not-allowed"'}
-                        class="w-full border border-gray-300 p-3 rounded-lg focus:ring-primary focus:border-primary">
-                    <p class="text-xs text-gray-500 mt-1">Debe coincidir con la constante HIVE_ID en el código de la placa ESP32.</p>
-                </div>
-
-                <div class="mb-4">
-                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                    <input type="text" id="name" name="name" value="${hive.name}" required
-                        class="w-full border border-gray-300 p-3 rounded-lg focus:ring-primary focus:border-primary">
-                </div>
-
-                <div class="mb-4">
-                    <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
-                    <input type="text" id="location" name="location" value="${hive.location}" required
-                        class="w-full border border-gray-300 p-3 rounded-lg focus:ring-primary focus:border-primary">
-                </div>
-                
-                <div class="mb-4">
-                    <label for="twitch_channel_name" class="block text-sm font-medium text-gray-700 mb-1">Nombre del Canal de Twitch (Opcional)</label>
-                    <input type="text" id="twitch_channel_name" name="twitch_channel_name" value="${hive.twitch_channel_name || ''}"
-                        class="w-full border border-gray-300 p-3 rounded-lg focus:ring-primary focus:border-primary" placeholder="Ej: reservatrefila">
-                    <p class="text-xs text-gray-500 mt-1">Solo el nombre del canal, no la URL completa.</p>
-                </div>
-
-                <div class="mb-6">
-                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-                    <textarea id="notes" name="notes" rows="3"
-                        class="w-full border border-gray-300 p-3 rounded-lg focus:ring-primary focus:border-primary">${hive.notes}</textarea>
-                </div>
-
-                <button type="submit" class="w-full bg-primary text-secondary font-semibold py-3 rounded-lg hover:bg-yellow-600 transition shadow-lg">
-                    ${isNew ? 'Crear Colmena' : 'Actualizar Colmena'}
-                </button>
+                <div class="mb-4"><label class="block text-sm font-bold">ID (ESP32)</label><input type="number" name="hive_id" value="${hive.hive_id}" class="w-full border p-2 rounded"></div>
+                <div class="mb-4"><label class="block text-sm font-bold">Nombre</label><input type="text" name="name" value="${hive.name}" class="w-full border p-2 rounded"></div>
+                <div class="mb-4"><label class="block text-sm font-bold">Ubicación</label><input type="text" name="location" value="${hive.location}" class="w-full border p-2 rounded"></div>
+                <div class="mb-4"><label class="block text-sm font-bold">Canal Twitch</label><input type="text" name="twitch_channel_name" value="${hive.twitch_channel_name || ''}" class="w-full border p-2 rounded"></div>
+                <div class="mb-4"><label class="block text-sm font-bold">Notas</label><textarea name="notes" class="w-full border p-2 rounded">${hive.notes}</textarea></div>
+                <button type="submit" class="w-full bg-primary py-2 rounded font-bold">Guardar</button>
             </form>
-        </div>
-    `;
-    
-    // Adjuntar el listener de envío del formulario de forma segura
+        </div>`;
     setupEditFormListener(hive, isNew);
     initializeIcons();
 }
